@@ -1,0 +1,8 @@
+#!/usr/bin/python
+
+from cov import *
+def main():
+    do_cov(["javac", "MyClass.java"], "udcstream")
+
+if __name__ == '__main__':
+    main()
