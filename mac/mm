@@ -1,0 +1,96 @@
+#!/usr/bin/python
+from optparse import OptionParser
+from os.path import dirname, abspath
+import sys
+from subprocess import PIPE
+if __name__ == '__main__':
+    here = abspath(dirname(__file__))
+    sys.path.remove(here)
+    sys.path.insert(0, dirname(here))
+    #__package__ = "mac"
+from utils import Proc
+import logging
+log = logging.getLogger(__name__)
+
+
+def main():
+    usage = "usage: %prog [options] compile_command"
+    parser = OptionParser(usage)
+    parser.add_option("-t", "--test", dest="test",
+                      help="dont skip tests [default: %default]", default=False, action="store_true")
+    parser.add_option("-a", "--action", dest="action",
+                      help="what action to run: can be c (compile) "
+                           "r (rebuild schema) l(loadsampledata) cc(clean compile) [default: %default]", default="c")
+    (options, args) = parser.parse_args()
+    if len(args) != 0:
+        parser.error("no args are required!")
+    if options.action not in ['c', 'l', 'r', 'cc']:
+        parser.error("action should be either 'c' (compile), 'l'(loadSampleData) or 'r'(rebuildSchema)")
+
+    #check and kill apache
+    check_and_kill_tomcat()
+    check_and_kill_pgadmin()
+    cmd = ['mvn', 'install']
+    if options.action=='c':
+        cmd += ['-P', 'integrationServer']
+    elif options.action=='r':
+        cmd+=['-P', 'rebuildSchema']
+    elif options.action=='l':
+        cmd+=['-P', 'loadSampleData']
+    elif options.action == 'cc':
+        cmd+=['clean', '-P', 'integrationServer']
+
+    if not options.test:
+        cmd+=['-DskipTests']
+    Proc(cmd).checked_call()
+
+
+
+def check_and_kill_tomcat():
+    tomcat_pid = get_tomcat_pid()
+    if not tomcat_pid:
+        log.debug("tomcat is not running")
+        return
+    log.debug("tomcat running with pid %s. killing now" % tomcat_pid)
+    Proc(['sudo', 'kill', '-9', tomcat_pid]).checked_call()
+    tomcat_pid = get_tomcat_pid()
+    if tomcat_pid:
+        raise Exception("Could not kill tomcat!")
+    else:
+        log.debug("Successfully killed tomcat.")
+
+
+def get_tomcat_pid():
+    awkprog = """{if($2=="Bootstrap") print $1;}"""
+    jps = Proc(['jps'], stdout=PIPE)
+    awkprog = Proc(['awk', awkprog], stdin=jps.stdout, stdout=PIPE)
+    tomcat_pid = None
+    for line in awkprog.capture_output():
+        tomcat_pid = line
+    return None if not tomcat_pid else tomcat_pid.strip()
+
+def check_and_kill_pgadmin():
+    pgadmin_pid = get_pgadmin_pid()
+    if not pgadmin_pid:
+        log.debug("pgadmin not running")
+        return
+    log.debug("pgadmin found running with pid %s. killing now" % pgadmin_pid)
+    Proc(['sudo', 'kill', '-9', pgadmin_pid]).checked_call()
+    pgadmin_pid = get_pgadmin_pid()
+    if pgadmin_pid:
+        raise Exception("Could not kill pgadmin!")
+    else:
+        log.debug("Successfully killed pgadmin.")
+
+def get_pgadmin_pid():
+    awkprog = """{if($11=="/Library/PostgreSQL/9.3/pgAdmin3.app/Contents/MacOS/pgAdmin3") print $2;}"""
+    ps = Proc(['ps', 'aux'], stdout=PIPE)
+    awkprog = Proc(['awk', awkprog], stdin=ps.stdout, stdout=PIPE)
+    pgadmin_pid = None
+    for line in awkprog.capture_output():
+        pgadmin_pid = line
+    return None if not pgadmin_pid else pgadmin_pid.strip()
+
+
+if __name__ == '__main__':
+    log.debug(main())

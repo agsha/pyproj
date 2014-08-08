@@ -1,0 +1,18 @@
+#!/usr/bin/python
+import sys
+from os.path import dirname, abspath
+
+if __name__ == '__main__':
+    here = abspath(dirname(__file__))
+    sys.path.remove(here)
+    sys.path.insert(0, dirname(here))
+    print(sys.path)
+    __package__ = "mac"
+
+from utils import *
+from mac.cov import *
+def main():
+    do_cov(["javac", "src/Hello.java"], "udcstream")
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,49 @@
+#!/usr/bin/python
+from optparse import OptionParser
+from os.path import dirname, abspath
+import sys
+
+if __name__ == '__main__':
+    here = abspath(dirname(__file__))
+    sys.path.remove(here)
+    sys.path.insert(0, dirname(here))
+
+from utils import Proc
+
+__author__ = 'sgururaj'
+
+import sys
+from optparse import *
+
+def do_cov(compile_command, stream, intermediate="intermediate",
+           analysis_cmd='/Users/sgururaj/projects/prevent/objs/macosx/root/bin/cov-analyze-java'):
+    Proc(["/Users/sgururaj/projects/prevent/objs/macosx/root/bin/cov-build", "--dir", intermediate] + compile_command).checked_call()
+    Proc([analysis_cmd, "--dir", intermediate]).checked_call()
+    Proc(["/Users/sgururaj/projects/prevent/objs/macosx/root/bin/cov-commit-defects", "--stream", stream, "--port", "8080",
+          "--user", "admin", "--password", "coverity", "--host", "localhost", "--dir", intermediate]).checked_call()
+
+
+def main():
+    usage = "usage: %prog [options] compile_command"
+    parser = OptionParser(usage)
+    parser.add_option("-s", "--stream", dest="stream",
+                      help="commit to this stream [default: %default]", default="udcstream")
+    parser.add_option("-i", "--intermediate_dir", dest="intermediate",
+                      help="intermediate directory [default: %default]", default="intermediate")
+    parser.add_option("-l", "--language", dest="language",
+                      help="language of source code. This will decide if cov-analyze or"
+                           " cov-analyze-java should be used. correct values "
+                           "are 'c' or 'java' [default: %default]", default="java")
+    (options, args) = parser.parse_args()
+    if len(args) != 1:
+        parser.error("incorrect number of arguments")
+    if options.language not in ['c', 'java']:
+        parser.error("language should be either 'c' or 'java'")
+
+    cmd = '/Users/sgururaj/projects/prevent/objs/macosx/root/bin/cov-analyze-java'
+    if options.language == 'c':
+        cmd = '/Users/sgururaj/projects/prevent/objs/macosx/root/bin/cov-analyze'
+    do_cov(args[0].split(" "), options.stream, options.intermediate, cmd)
+
+if __name__ == '__main__':
+    main()

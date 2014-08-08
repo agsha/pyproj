@@ -1,0 +1,42 @@
+#!/usr/bin/python
+from optparse import OptionParser
+from os.path import dirname, abspath
+import sys
+from subprocess import PIPE
+if __name__ == '__main__':
+    here = abspath(dirname(__file__))
+    sys.path.remove(here)
+    sys.path.insert(0, dirname(here))
+    #__package__ = "mac"
+from utils import Proc
+import logging
+log = logging.getLogger(__name__)
+from subprocess import STDOUT
+
+def main():
+    usage = "usage: %prog [options] search_string"
+    parser = OptionParser(usage)
+    parser.add_option("-i", "--insensitive", dest="case_insensitive",
+                      help="make the search case insensitive [default: %default]", default=False, action="store_true")
+    parser.add_option("-e", "--exact", dest="exact",
+                      help="don't surround search string with '*'"
+                           "before passing to find [default: %default]", default=False, action="store_true")
+    parser.add_option("-p", "--path", dest="path",
+                      help="search the pathname instead of filename [default: %default]",
+                      default=False, action="store_true")
+    (options, args) = parser.parse_args()
+    if len(args) != 1:
+        parser.error("exactly one search term must be specified.")
+    cmd = ['find', '.']
+    arg1 = {True: 'path', False:'name'}[options.path]
+    arg1 = '-'+{True: 'i', False:''}[options.case_insensitive]+arg1
+    optional_star = {True: '', False:'*'}[options.exact]
+    search_term = "'"+optional_star+args[0]+optional_star+"'"
+    cmd+= [arg1, search_term, '-print0']
+    findd = Proc(cmd, bufsize=10)
+    op = findd.checked_call()
+
+def echo():
+    Proc(['echo', 'hello']).checked_call()
+if __name__ == '__main__':
+    log.debug(main())

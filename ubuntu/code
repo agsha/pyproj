@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from cov import *
+from ubuntu.cov import *
 def main():
     do_cov(["javac", "MyClass.java"], "udcstream")
 

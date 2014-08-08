@@ -1,0 +1,25 @@
+#!/usr/bin/python
+from optparse import OptionParser
+from os.path import dirname, abspath
+import sys
+from subprocess import PIPE
+if __name__ == '__main__':
+    here = abspath(dirname(__file__))
+    sys.path.remove(here)
+    sys.path.insert(0, dirname(here))
+    #__package__ = "mac"
+from utils import Proc
+import logging
+log = logging.getLogger(__name__)
+from subprocess import STDOUT
+
+def main():
+    cmd = "mvn -Dmaven.test.skip=true clean install -P generateSchema".split(" ")
+    Proc(cmd).checked_call()
+    Proc("cp app/core/src/main/resources/schema/createDb.sql.new app/core/src/main/resources/schema/createDb.sql".split(" ")).checked_call()
+    Proc("git diff app/core/src/main/resources/schema/createDb.sql".split(" ")).checked_call()
+
+def echo():
+    Proc(['echo', 'hello']).checked_call()
+if __name__ == '__main__':
+    log.debug(main())
