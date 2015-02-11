@@ -5,6 +5,7 @@ if you want to remove all *.log files, you need to type
     
     find . -type f -name "*.log" | xargs rm -rf
 
+Yes. Even the double quotes around `*.log` is required.
 Crazy! of course you can write a bash script, but who wants to learn that shitty language?
 I dont want to spend hours debugging if I should use single quotes? double quotes? backquotes? 
 special characters like '?', '*'
